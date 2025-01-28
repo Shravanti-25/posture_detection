@@ -4,20 +4,27 @@ import mediapipe as mp
 import pyttsx3
 import numpy as np
 import threading
+from collections import deque
 
 app = Flask(__name__)
 
 # Initialize MediaPipe Pose
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.7, min_tracking_confidence=0.7)
+pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.8, min_tracking_confidence=0.8)
 
 # Initialize pyttsx3 for voice-over
 engine = pyttsx3.init()
 engine.setProperty('rate', 150)  # Speed of the speech
 engine.setProperty('volume', 1)  # Volume level (0.0 to 1.0)
 
-# Initialize the webcam
+# Initialize the webcam with higher resolution
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+# Smoothing filter for landmarks
+smoothing_filter_length = 5
+landmark_history = deque(maxlen=smoothing_filter_length)
 
 # Function to calculate angle between three points
 def calculate_angle(a, b, c):
@@ -32,6 +39,10 @@ def calculate_angle(a, b, c):
         angle = 360 - angle
 
     return angle
+
+# Convert normalized coordinates to pixel coordinates
+def to_pixel_coordinates(landmark, frame_width, frame_height):
+    return [int(landmark.x * frame_width), int(landmark.y * frame_height)]
 
 # Function to generate video feed for the frontend
 def generate_frames():
@@ -49,33 +60,36 @@ def generate_frames():
 
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
+            frame_height, frame_width, _ = frame.shape
 
-            # Extract relevant points
-            left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
-                             landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-            left_hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,
-                        landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
-            left_ear = [landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].x,
-                        landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].y]
-            left_ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x,
-                          landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+            # Smooth landmarks using exponential moving average
+            if not landmark_history:
+                landmark_history.extend([landmarks] * smoothing_filter_length)
+            else:
+                landmark_history.append(landmarks)
+            smoothed_landmarks = np.mean([np.array([[lm.x, lm.y] for lm in frame]) for frame in landmark_history], axis=0)
+
+            # Extract relevant points and convert to pixel coordinates
+            left_shoulder = to_pixel_coordinates(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER], frame_width, frame_height)
+            left_hip = to_pixel_coordinates(landmarks[mp_pose.PoseLandmark.LEFT_HIP], frame_width, frame_height)
+            left_ear = to_pixel_coordinates(landmarks[mp_pose.PoseLandmark.LEFT_EAR], frame_width, frame_height)
+            left_ankle = to_pixel_coordinates(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE], frame_width, frame_height)
 
             # Calculate angles
             neck_angle = calculate_angle(left_ear, left_shoulder, left_hip)
             torso_angle = calculate_angle(left_shoulder, left_hip, left_ankle)
 
             # Feedback logic for neck
-            if neck_angle > 30:
+            if neck_angle > 45:  # Adjusted threshold for neck
                 neck_feedback = "Neck Bend Detected"
                 color_neck = (0, 0, 255)  # Red
-                # Trigger text-to-speech alert
                 threading.Thread(target=speak_posture, args=("Neck bend detected!",)).start()
             else:
                 neck_feedback = "Neck Aligned"
                 color_neck = (0, 255, 0)  # Green
 
             # Feedback logic for torso
-            if torso_angle > 10:
+            if torso_angle > 20:  # Adjusted threshold for torso
                 torso_feedback = "Torso Misaligned"
                 color_torso = (0, 0, 255)  # Red
             else:
