@@ -1,0 +1,63 @@
+/* Global Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f8ff; /* Light blue background */
+    color: #333;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    font-size: 2.5em;
+    color: #4CAF50; /* Green color for the heading */
+    margin-top: 50px;
+}
+
+/* Styling the buttons */
+button {
+    background-color: #4CAF50; /* Green background */
+    color: white;
+    padding: 15px 32px;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 15px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+button:active {
+    background-color: #388e3c; /* Even darker green when button is clicked */
+}
+
+/* Styling the video feed container */
+#video_feed_container {
+    width: 80%;
+    max-width: 700px;
+    margin: 40px auto;
+    border: 5px solid #4CAF50; /* Green border around the video feed */
+    padding: 10px;
+    background-color: #fff;
+    display: none; /* Initially hidden */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Styling the webcam feed */
+#video_feed {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Additional container for the buttons */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+}

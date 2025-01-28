@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posture Detection</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <h1>Detect your posture...</h1>
+
+    <!-- Video Feed Container -->
+    <div id="video_feed_container">
+        <img id="video_feed" src="{{ url_for('video_feed') }}" alt="Webcam Feed"/>
+    </div>
+
+    <!-- Button Container -->
+    <div class="button-container">
+        <button id="start_camera" onclick="startCamera()">Start Camera</button>
+        <button id="detect_posture" onclick="detectPosture()">Detect Posture</button>
+    </div>
+
+    <script>
+        function startCamera() {
+            document.getElementById('video_feed_container').style.display = "block";
+            // Logic for enabling webcam feed
+        }
+
+        function detectPosture() {
+            fetch('/detect_posture', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);  // Display posture message
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
